@@ -15,6 +15,7 @@ import com.whizzosoftware.hobson.api.plugin.channel.AbstractChannelObjectPlugin;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.variable.VariableConstants;
+import com.whizzosoftware.hobson.api.variable.VariableContext;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 import com.whizzosoftware.hobson.dsc.api.codec.DSCFrameDecoder;
 import com.whizzosoftware.hobson.dsc.api.codec.DSCFrameEncoder;
@@ -118,7 +119,7 @@ public class DSCPlugin extends AbstractChannelObjectPlugin {
             String ledStatus = ((LEDStatus)o).getStatus().name();
             logger.debug("LED {} is {}", ledType, ledStatus);
             if (ledType.equalsIgnoreCase("armed")) {
-                fireVariableUpdateNotification(new VariableUpdate(panelContext, VariableConstants.ARMED, "on".equalsIgnoreCase(ledStatus)));
+                fireVariableUpdateNotification(new VariableUpdate(VariableContext.create(panelContext, VariableConstants.ARMED), "on".equalsIgnoreCase(ledStatus)));
             }
         } else if (o instanceof PartitionBusy) {
             logger.debug("Partition {} is busy", ((PartitionBusy)o).getPartition());
@@ -130,7 +131,7 @@ public class DSCPlugin extends AbstractChannelObjectPlugin {
             String version = ((SoftwareVersion)o).getVersion();
             logger.info("DSC software version is: {}", version);
             if (version != null) {
-                fireVariableUpdateNotification(new VariableUpdate(panelContext, VariableConstants.FIRMWARE_VERSION, version));
+                fireVariableUpdateNotification(new VariableUpdate(VariableContext.create(panelContext, VariableConstants.FIRMWARE_VERSION), version));
             }
         } else if (o instanceof TroubleLEDOff) {
             logger.debug("Trouble LED off: {}", ((TroubleLEDOff) o).getPartition());
@@ -143,7 +144,7 @@ public class DSCPlugin extends AbstractChannelObjectPlugin {
         } else if (o instanceof TimeDateBroadcast) {
             String ts = ((TimeDateBroadcast)o).getISO8601String();
             logger.debug("Time/date broadcast: {}", ts);
-            fireVariableUpdateNotification(new VariableUpdate(panelContext, VariableConstants.TIME, ts));
+            fireVariableUpdateNotification(new VariableUpdate(VariableContext.create(panelContext, VariableConstants.TIME), ts));
         } else {
             logger.debug("Ignoring unknown command: {}", o);
         }
@@ -197,7 +198,7 @@ public class DSCPlugin extends AbstractChannelObjectPlugin {
                     publishDevice(new DSCZoneDevice(this, zone, isOpen));
                 } else {
                     logger.debug("Setting existing device {} to {}", dctx, isOpen);
-                    fireVariableUpdateNotification(new VariableUpdate(dctx, VariableConstants.ON, isOpen));
+                    fireVariableUpdateNotification(new VariableUpdate(VariableContext.create(dctx, VariableConstants.ON), isOpen));
                 }
             } catch (Exception e) {
                 logger.error("Error updating zone state", e);
