@@ -34,9 +34,9 @@ public class DSCSecurityPanelDevice extends AbstractHobsonDevice {
     public void onStartup(PropertyContainer config) {
         super.onStartup(config);
 
-        publishVariable(VariableConstants.ARMED, null, HobsonVariable.Mask.READ_WRITE);
-        publishVariable(VariableConstants.FIRMWARE_VERSION, null, HobsonVariable.Mask.READ_ONLY);
-        publishVariable(VariableConstants.TIME, null, HobsonVariable.Mask.READ_WRITE);
+        publishVariable(VariableConstants.ARMED, null, HobsonVariable.Mask.READ_WRITE, null);
+        publishVariable(VariableConstants.FIRMWARE_VERSION, null, HobsonVariable.Mask.READ_ONLY, null);
+        publishVariable(VariableConstants.TIME, null, HobsonVariable.Mask.READ_WRITE, null);
     }
 
     @Override

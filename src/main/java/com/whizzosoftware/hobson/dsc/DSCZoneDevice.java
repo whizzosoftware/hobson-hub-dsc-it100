@@ -33,7 +33,7 @@ public class DSCZoneDevice extends AbstractHobsonDevice {
         super.onStartup(config);
 
         // publish an "on" variable
-        publishVariable(VariableConstants.ON, startValue, HobsonVariable.Mask.READ_ONLY);
+        publishVariable(VariableConstants.ON, startValue, HobsonVariable.Mask.READ_ONLY, System.currentTimeMillis());
     }
 
     @Override
