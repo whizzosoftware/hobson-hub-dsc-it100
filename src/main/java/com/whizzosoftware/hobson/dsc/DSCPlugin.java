@@ -46,6 +46,12 @@ public class DSCPlugin extends AbstractChannelObjectPlugin {
     }
 
     @Override
+    public void onStartup(PropertyContainer config) {
+        super.onStartup(config);
+        processConfiguration(config);
+    }
+
+    @Override
     public String getName() {
         return "DSC Alarm IT-100";
     }
@@ -53,16 +59,19 @@ public class DSCPlugin extends AbstractChannelObjectPlugin {
     @Override
     public void onPluginConfigurationUpdate(PropertyContainer config) {
         super.onPluginConfigurationUpdate(config);
+        processConfiguration(config);
+        if (initialStatusRequestSent) {
+            logger.debug("Sending status request for configuration change");
+            send(new StatusRequest());
+        }
+    }
+
+    protected void processConfiguration(PropertyContainer config) {
         userCode = config.getStringPropertyValue("user.code");
         try {
             enabledZones = new EnabledZones(config.getStringPropertyValue("enabled.zones"));
         } catch (NumberFormatException e) {
             logger.error("Error reading enabled zones property; enabling all zones", e);
-        }
-
-        if (initialStatusRequestSent) {
-            logger.debug("Sending status request for configuration change");
-            send(new StatusRequest());
         }
     }
 
