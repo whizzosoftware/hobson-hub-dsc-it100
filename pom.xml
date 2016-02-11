@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.whizzosoftware.hobson.hub</groupId>
     <artifactId>hobson-hub-dsc-it100</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <name>DSC Alarm IT-100</name>
     <description>Provides the ability to control DSC alarm systems using the IT-100 interface.</description>
@@ -149,7 +149,7 @@
     <scm>
         <connection>scm:git:ssh://git@github.com/whizzosoftware/hobson-hub-dsc-it100.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/whizzosoftware/hobson-hub-dsc-it100.git</developerConnection>
-        <tag>hobson-hub-dsc-it100-0.0.1</tag>
+        <tag>HEAD</tag>
     </scm>
     <repositories>
         <repository>
