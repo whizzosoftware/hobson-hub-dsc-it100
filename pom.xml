@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.whizzosoftware.hobson.hub</groupId>
     <artifactId>hobson-hub-dsc-it100</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.2.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <name>DSC Alarm IT-100</name>
     <description>Provides the ability to control DSC alarm systems using the IT-100 interface.</description>
@@ -64,7 +64,7 @@
         <dependency>
             <groupId>com.whizzosoftware.hobson.hub</groupId>
             <artifactId>hobson-hub-api</artifactId>
-            <version>0.8.0</version>
+            <version>0.9.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -124,7 +124,7 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Import-Package>org.slf4j,io.netty.*,org.json.*,org.joda.time.*,org.apache.commons.*,com.whizzosoftware.hobson.bootstrap.api.*,com.whizzosoftware.hobson.api.*;version="[0.8.0,0.9)</Import-Package>
+                        <Import-Package>org.slf4j,io.netty.*,org.json.*,org.joda.time.*,org.apache.commons.*,com.whizzosoftware.hobson.bootstrap.api.*,com.whizzosoftware.hobson.api.*;version="[0.9.0,0.10)</Import-Package>
                         <Bundle-Activator>com.whizzosoftware.hobson.api.osgi.activator.HobsonBundleActivator</Bundle-Activator>
                         <Provide-Capability>hobson.plugin=com.whizzosoftware.hobson.dsc.DSCPlugin</Provide-Capability>
                         <Bundle-Category>hobson-plugin</Bundle-Category>
