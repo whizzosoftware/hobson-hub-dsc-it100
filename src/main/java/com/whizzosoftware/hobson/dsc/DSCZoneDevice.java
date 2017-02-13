@@ -1,43 +1,43 @@
-/*******************************************************************************
+/*
+ *******************************************************************************
  * Copyright (c) 2016 Whizzo Software, LLC.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *******************************************************************************/
+ *******************************************************************************
+*/
 package com.whizzosoftware.hobson.dsc;
 
-import com.whizzosoftware.hobson.api.device.AbstractHobsonDevice;
 import com.whizzosoftware.hobson.api.device.DeviceType;
-import com.whizzosoftware.hobson.api.property.PropertyContainer;
+import com.whizzosoftware.hobson.api.device.proxy.AbstractHobsonDeviceProxy;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
-import com.whizzosoftware.hobson.api.variable.HobsonVariable;
 import com.whizzosoftware.hobson.api.variable.VariableConstants;
+import com.whizzosoftware.hobson.api.variable.VariableMask;
+
+import java.util.Map;
 
 /**
  * A device representing a DSC alarm zone.
  *
  * @author Dan Noguerol
  */
-public class DSCZoneDevice extends AbstractHobsonDevice {
+public class DSCZoneDevice extends AbstractHobsonDeviceProxy {
     private boolean startValue;
 
-    public DSCZoneDevice(DSCPlugin plugin, int zone, boolean startValue) {
-        super(plugin, Integer.toString(zone));
-        setDefaultName("DSC Alarm Zone " + zone);
+    DSCZoneDevice(DSCPlugin plugin, int zone, boolean startValue) {
+        super(plugin, Integer.toString(zone), "DSC Alarm Zone " + zone, DeviceType.SENSOR);
         this.startValue = startValue;
     }
 
     @Override
-    public void onStartup(PropertyContainer config) {
-        super.onStartup(config);
-
+    public void onStartup(String name, Map<String,Object> config) {
         // publish an "on" variable
-        publishVariable(VariableConstants.ON, startValue, HobsonVariable.Mask.READ_ONLY, System.currentTimeMillis());
+        publishVariables(createDeviceVariable(VariableConstants.ON, VariableMask.READ_ONLY, startValue, System.currentTimeMillis()));
     }
 
     @Override
-    protected TypedProperty[] createSupportedProperties() {
+    protected TypedProperty[] getConfigurationPropertyTypes() {
         return null;
     }
 
@@ -46,8 +46,18 @@ public class DSCZoneDevice extends AbstractHobsonDevice {
     }
 
     @Override
-    public DeviceType getType() {
-        return DeviceType.SENSOR;
+    public String getManufacturerName() {
+        return "DSC";
+    }
+
+    @Override
+    public String getManufacturerVersion() {
+        return null;
+    }
+
+    @Override
+    public String getModelName() {
+        return null;
     }
 
     @Override
@@ -56,6 +66,15 @@ public class DSCZoneDevice extends AbstractHobsonDevice {
     }
 
     @Override
-    public void onSetVariable(String variableName, Object value) {
+    public void onDeviceConfigurationUpdate(Map<String,Object> config) {
+
+    }
+
+    public void onUpdateZoneState(boolean open) {
+        setVariableValue(VariableConstants.ON, open, System.currentTimeMillis());
+    }
+
+    @Override
+    public void onSetVariables(Map<String,Object> values) {
     }
 }

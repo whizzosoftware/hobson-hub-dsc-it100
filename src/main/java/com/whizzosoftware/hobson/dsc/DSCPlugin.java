@@ -1,22 +1,19 @@
-/*******************************************************************************
+/*
+ *******************************************************************************
  * Copyright (c) 2016 Whizzo Software, LLC.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *******************************************************************************/
+ *******************************************************************************
+*/
 package com.whizzosoftware.hobson.dsc;
 
 import com.whizzosoftware.hobson.api.HobsonInvalidRequestException;
-import com.whizzosoftware.hobson.api.device.DeviceContext;
-import com.whizzosoftware.hobson.api.device.HobsonDevice;
-import com.whizzosoftware.hobson.api.event.HobsonEvent;
+import com.whizzosoftware.hobson.api.device.proxy.HobsonDeviceProxy;
 import com.whizzosoftware.hobson.api.plugin.channel.AbstractChannelObjectPlugin;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
-import com.whizzosoftware.hobson.api.variable.VariableConstants;
-import com.whizzosoftware.hobson.api.variable.VariableContext;
-import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 import com.whizzosoftware.hobson.dsc.api.codec.DSCFrameDecoder;
 import com.whizzosoftware.hobson.dsc.api.codec.DSCFrameEncoder;
 import com.whizzosoftware.hobson.dsc.api.command.*;
@@ -36,13 +33,12 @@ import org.slf4j.LoggerFactory;
 public class DSCPlugin extends AbstractChannelObjectPlugin {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private DeviceContext panelContext;
     private String userCode;
     private EnabledZones enabledZones = new EnabledZones();
     private boolean initialStatusRequestSent;
 
-    public DSCPlugin(String pluginId) {
-        super(pluginId);
+    public DSCPlugin(String pluginId, String version, String description) {
+        super(pluginId, version, description);
     }
 
     @Override
@@ -66,7 +62,7 @@ public class DSCPlugin extends AbstractChannelObjectPlugin {
         }
     }
 
-    protected void processConfiguration(PropertyContainer config) {
+    private void processConfiguration(PropertyContainer config) {
         userCode = config.getStringPropertyValue("user.code");
         try {
             enabledZones = new EnabledZones(config.getStringPropertyValue("enabled.zones"));
@@ -98,9 +94,8 @@ public class DSCPlugin extends AbstractChannelObjectPlugin {
 
     @Override
     protected void onChannelConnected() {
-        panelContext = DeviceContext.create(getContext(), DSCSecurityPanelDevice.ID);
-        if (!hasDevice(panelContext)) {
-            publishDevice(new DSCSecurityPanelDevice(this));
+        if (!hasDeviceProxy(DSCSecurityPanelDevice.ID)) {
+            publishDeviceProxy(new DSCSecurityPanelDevice(this));
         }
 
         logger.debug("Enabling time/date broadcast control");
@@ -128,7 +123,8 @@ public class DSCPlugin extends AbstractChannelObjectPlugin {
             String ledStatus = ((LEDStatus)o).getStatus().name();
             logger.debug("LED {} is {}", ledType, ledStatus);
             if (ledType.equalsIgnoreCase("armed")) {
-                fireVariableUpdateNotification(new VariableUpdate(VariableContext.create(panelContext, VariableConstants.ARMED), "on".equalsIgnoreCase(ledStatus)));
+                DSCSecurityPanelDevice device = (DSCSecurityPanelDevice)getDeviceProxy(DSCSecurityPanelDevice.ID);
+                device.onArmedUpdate("on".equalsIgnoreCase(ledStatus));
             }
         } else if (o instanceof PartitionBusy) {
             logger.debug("Partition {} is busy", ((PartitionBusy)o).getPartition());
@@ -140,7 +136,8 @@ public class DSCPlugin extends AbstractChannelObjectPlugin {
             String version = ((SoftwareVersion)o).getVersion();
             logger.info("DSC software version is: {}", version);
             if (version != null) {
-                fireVariableUpdateNotification(new VariableUpdate(VariableContext.create(panelContext, VariableConstants.FIRMWARE_VERSION), version));
+                DSCSecurityPanelDevice device = (DSCSecurityPanelDevice)getDeviceProxy(DSCSecurityPanelDevice.ID);
+                device.onFirmwareUpdate(version);
             }
         } else if (o instanceof TroubleLEDOff) {
             logger.debug("Trouble LED off: {}", ((TroubleLEDOff) o).getPartition());
@@ -153,24 +150,24 @@ public class DSCPlugin extends AbstractChannelObjectPlugin {
         } else if (o instanceof TimeDateBroadcast) {
             String ts = ((TimeDateBroadcast)o).getISO8601String();
             logger.debug("Time/date broadcast: {}", ts);
-            fireVariableUpdateNotification(new VariableUpdate(VariableContext.create(panelContext, VariableConstants.TIME), ts));
+            DSCSecurityPanelDevice device = (DSCSecurityPanelDevice)getDeviceProxy(DSCSecurityPanelDevice.ID);
+            device.onTimeUpdate(ts);
         } else {
             logger.debug("Ignoring unknown command: {}", o);
         }
 
         // flag the panel and all sensors as available
         long now = System.currentTimeMillis();
-        getDevice(panelContext).getRuntime().setDeviceAvailability(true, now);
-        for (HobsonDevice d : getDeviceManager().getAllDevices(getContext())) {
-            setDeviceAvailability(d.getContext(), true, now);
+        for (HobsonDeviceProxy d : getDeviceProxies()) {
+            d.setLastCheckin(now);
         }
     }
 
-    public void sendSetDateTimeRequest(DateTime dateTime) {
+    void sendSetDateTimeRequest(DateTime dateTime) {
         send(new SetDateAndTime(dateTime));
     }
 
-    public void sendArmPartitionRequest(int partition) {
+    void sendArmPartitionRequest(int partition) {
         if (userCode != null && userCode.trim().length() > 0) {
             try {
                 send(new PartitionArmControlWithCode(partition, userCode));
@@ -182,7 +179,7 @@ public class DSCPlugin extends AbstractChannelObjectPlugin {
         }
     }
 
-    public void sendDisarmPartitionRequest(int partition) {
+    void sendDisarmPartitionRequest(int partition) {
         if (userCode != null && userCode.trim().length() > 0) {
             try {
                 send(new PartitionDisarmControlWithCode(partition, userCode));
@@ -201,13 +198,14 @@ public class DSCPlugin extends AbstractChannelObjectPlugin {
     private void updateZoneState(int zone, boolean isOpen) {
         if (enabledZones.isZoneEnabled(zone)) {
             try {
-                DeviceContext dctx = DeviceContext.create(getContext(), Integer.toString(zone));
-                if (!hasDevice(dctx)) {
-                    logger.debug("Creating new device: {}", dctx);
-                    publishDevice(new DSCZoneDevice(this, zone, isOpen));
+                String deviceId = Integer.toString(zone);
+                if (!hasDeviceProxy(deviceId)) {
+                    logger.debug("Creating new device: {}", deviceId);
+                    publishDeviceProxy(new DSCZoneDevice(this, zone, isOpen));
                 } else {
-                    logger.debug("Setting existing device {} to {}", dctx, isOpen);
-                    fireVariableUpdateNotification(new VariableUpdate(VariableContext.create(dctx, VariableConstants.ON), isOpen));
+                    logger.debug("Setting existing device {} to {}", deviceId, isOpen);
+                    DSCZoneDevice device = (DSCZoneDevice)getDeviceProxy(deviceId);
+                    device.onUpdateZoneState(isOpen);
                 }
             } catch (Exception e) {
                 logger.error("Error updating zone state", e);
@@ -221,12 +219,7 @@ public class DSCPlugin extends AbstractChannelObjectPlugin {
     }
 
     @Override
-    public void onHobsonEvent(HobsonEvent event) {
-        // TODO
-    }
-
-    @Override
-    protected TypedProperty[] createSupportedProperties() {
+    protected TypedProperty[] getConfigurationPropertyTypes() {
         return new TypedProperty[] {
             new TypedProperty.Builder("serial.port", "Serial Port", "The serial port that the Lutron RA-RS232 controller is connected to (should not be used with Serial Hostname)", TypedProperty.Type.STRING).build(),
             new TypedProperty.Builder("serial.hostname", "Serial Hostname", "The hostname of the GlobalCache device that the Lutron RA-RS232 controller is connected to (should not be used with Serial Port)", TypedProperty.Type.STRING).build(),
